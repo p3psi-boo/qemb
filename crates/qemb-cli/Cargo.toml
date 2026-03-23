@@ -1,0 +1,22 @@
+[package]
+name = "qemb-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "qemb"
+path = "src/main.rs"
+
+[dependencies]
+qemb-common.workspace = true
+qemb-runtime.workspace = true
+qemb-kernels.workspace = true
+qemb-convert.workspace = true
+qemb-tokenizer.workspace = true
+qemb-service.workspace = true
+tokio.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+clap = { version = "4", features = ["derive"] }

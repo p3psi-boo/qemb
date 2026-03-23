@@ -1,0 +1,11 @@
+[package]
+name = "qemb-kernels"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+qemb-common.workspace = true
+qemb-runtime.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true

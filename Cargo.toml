@@ -1,0 +1,36 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/qemb-common",
+    "crates/qemb-runtime",
+    "crates/qemb-kernels",
+    "crates/qemb-convert",
+    "crates/qemb-tokenizer",
+    "crates/qemb-service",
+    "crates/qemb-cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/user/qwen3-emb"
+
+[workspace.dependencies]
+# Common dependencies
+tokio = { version = "1", features = ["full"] }
+axum = "0.8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+# Internal crates
+qemb-common = { path = "crates/qemb-common" }
+qemb-runtime = { path = "crates/qemb-runtime" }
+qemb-kernels = { path = "crates/qemb-kernels" }
+qemb-convert = { path = "crates/qemb-convert" }
+qemb-tokenizer = { path = "crates/qemb-tokenizer" }
+qemb-service = { path = "crates/qemb-service" }
