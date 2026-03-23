@@ -1,3 +1,7 @@
+pub mod generators;
+pub mod metrics;
 pub mod primitives;
+pub mod reference;
+pub mod validation;
 
-// GPU kernel implementations will go here
+pub use primitives::{PrimitiveError, PrimitiveKind, PrimitiveResult, PrimitiveSpec};
