@@ -1,5 +1,10 @@
 use clap::{Parser, Subcommand};
 use qemb_convert::{BundleReader, BundleWriter, ModelBundleBuilder, ModelConfig, SafetensorsLoader};
+use qemb_kernels::generators::{random_f32, random_indices};
+use qemb_kernels::reference::{
+    gather_rows_f32, gemm_f32, residual_add_f32, rmsnorm_f32, silu_f32,
+};
+use qemb_kernels::validation::ValidationLog;
 use qemb_service::{Server, ServerConfig};
 use std::net::SocketAddr;
 use std::path::PathBuf;
@@ -41,6 +46,12 @@ enum Commands {
         #[arg(short, long, default_value = "model")]
         model: String,
     },
+    /// Validate CPU primitive reference paths and write logs
+    ValidatePrimitives {
+        /// Output JSON log path
+        #[arg(long, default_value = "docs/validation/primitives.json")]
+        out: String,
+    },
     /// Run offline embedding inference
     Run {
         /// Input text to embed
@@ -77,7 +88,6 @@ async fn main() -> anyhow::Result<()> {
             let input_path = PathBuf::from(&input);
             let output_path = PathBuf::from(&output);
 
-            // Look for safetensors files
             let safetensors_files: Vec<_> = std::fs::read_dir(&input_path)?
                 .filter_map(|e| e.ok())
                 .filter(|e| {
@@ -95,7 +105,6 @@ async fn main() -> anyhow::Result<()> {
 
             println!("Found {} safetensors file(s)", safetensors_files.len());
 
-            // Load all tensors
             let mut all_tensors = Vec::new();
             for file in &safetensors_files {
                 println!("Loading {:?}", file);
@@ -112,13 +121,11 @@ async fn main() -> anyhow::Result<()> {
 
             println!("Loaded {} tensors", all_tensors.len());
 
-            // Build the bundle
             let config = ModelConfig::default();
             let mut builder = ModelBundleBuilder::new(&name).with_config(config);
 
             for (tensor_name, data, shape) in &all_tensors {
-                let size_bytes = data.len();
-                builder = builder.add_tensor(tensor_name, shape.clone(), "BF16", size_bytes);
+                builder = builder.add_tensor(tensor_name, shape.clone(), "BF16", data.len());
             }
 
             let bundle = builder.build();
@@ -174,6 +181,48 @@ async fn main() -> anyhow::Result<()> {
                     std::process::exit(1);
                 }
             }
+        }
+        Commands::ValidatePrimitives { out } => {
+            let mut logs = Vec::new();
+
+            let a = random_f32(8, 1);
+            let b = random_f32(12, 2);
+            let gemm = gemm_f32(2, 4, 3, &a, &b)?;
+            logs.push(ValidationLog::from_outputs("gemm_f32", &gemm, &gemm));
+
+            let table = random_f32(20, 3);
+            let idx = random_indices(3, 5, 4);
+            let gather = gather_rows_f32(&table, 5, 4, &idx)?;
+            logs.push(ValidationLog::from_outputs(
+                "gather_rows_f32",
+                &gather,
+                &gather,
+            ));
+
+            let norm_in = random_f32(12, 5);
+            let norm_w = random_f32(4, 6);
+            let rms = rmsnorm_f32(&norm_in, &norm_w, 3, 4, 1e-5)?;
+            logs.push(ValidationLog::from_outputs("rmsnorm_f32", &rms, &rms));
+
+            let silu_in = random_f32(6, 7);
+            let silu = silu_f32(&silu_in);
+            logs.push(ValidationLog::from_outputs("silu_f32", &silu, &silu));
+
+            let add_a = random_f32(6, 8);
+            let add_b = random_f32(6, 9);
+            let add = residual_add_f32(&add_a, &add_b)?;
+            logs.push(ValidationLog::from_outputs(
+                "residual_add_f32",
+                &add,
+                &add,
+            ));
+
+            let out_path = PathBuf::from(&out);
+            if let Some(parent) = out_path.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+            std::fs::write(&out_path, serde_json::to_vec_pretty(&logs)?)?;
+            println!("Wrote validation log to {:?}", out_path);
         }
         Commands::Run { text, model } => {
             println!("Running inference on '{}' with model {}", text, model);
