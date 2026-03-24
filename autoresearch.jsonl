@@ -1,0 +1,3 @@
+{"type":"config","name":"优化吞吐性能","metricName":"tok_per_s","metricUnit":"","bestDirection":"higher"}
+{"run":1,"commit":"9a13c22","metric":473007.712,"metrics":{},"status":"keep","description":"Baseline: median aggregate offline embedding throughput across representative short/medium/long prompts in isolated worktree","timestamp":1774286590091,"segment":0,"confidence":null}
+{"run":2,"commit":"9a13c22","metric":463476.071,"metrics":{},"status":"discard","description":"Try tokenizers::Tokenizer::encode_fast for request tokenization to skip offset computation","timestamp":1774286879190,"segment":0,"confidence":null}
